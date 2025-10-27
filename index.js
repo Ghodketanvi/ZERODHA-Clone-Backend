@@ -1,51 +1,47 @@
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const { HoldingsModel } = require("./model/HoldingsModel");
-
 const { PositionsModel } = require("./model/PositionsModel");
 const { OrdersModel } = require("./model/OrdersModel");
+const User = require("./model/User"); // your mongoose User model
 
-const PORT = process.env.PORT || 5000;
 const uri = process.env.MONGO_URL;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const app = express();
-
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.json());
 
+// MongoDB connection
+mongoose.connect(uri)
+  .then(() => console.log("DB connected!"))
+  .catch((err) => console.error("DB connection error:", err));
 
-
-app.get("/allHoldings", async (req, res) => {
-  let allHoldings = await HoldingsModel.find({});
-  res.json(allHoldings);
+// Root route
+app.get('/', (req, res) => {
+  res.send('Backend is running!');
 });
 
-app.get("/allPositions", async (req, res) => {
-  let allPositions = await PositionsModel.find({});
-  res.json(allPositions);
-});
+// JWT Signup/Login routes using User model and hashing (as in previous message)
 
-app.post("/newOrder", async (req, res) => {
-  let newOrder = new OrdersModel({
-    name: req.body.name,
-    qty: req.body.qty,
-    price: req.body.price,
-    mode: req.body.mode,
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
   });
+}
 
-  newOrder.save();
+// Your protected and other API routes
 
-  res.send("Order saved!");
-});
-
-app.listen(PORT, () => {
-  console.log("App started!");
-  mongoose.connect(uri);
-  console.log("DB started!");
-});
 module.exports = app;
