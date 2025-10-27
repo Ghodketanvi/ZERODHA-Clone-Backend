@@ -48,3 +48,4 @@ app.listen(PORT, () => {
   mongoose.connect(uri);
   console.log("DB started!");
 });
+module.exports = app;
